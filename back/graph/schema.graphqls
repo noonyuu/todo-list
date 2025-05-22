@@ -1,0 +1,103 @@
+scalar Date
+
+# タスクの優先度
+enum Priority {
+  HIGH
+  MIDDLE
+  LOW
+}
+
+# タスクの状態
+enum Status {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+}
+
+type Task {
+  id: ID! # タスクのID
+  name: String! # タスクの名前
+  description: String # タスクの説明
+  startDate: Date # タスクの開始日時
+  endDate: Date # タスクの終了日時
+  priority: Priority! # タスクの優先度
+  labels: [String!] # タスクのラベル
+  status: Status! # タスクの状態
+  createdAt: Date
+  updatedAt: Date
+}
+
+type PageInfo {
+  # 次のページがあるかどうか
+  hasNextPage: Boolean!
+  # 前のページがあるかどうか
+  hasPreviousPage: Boolean!
+  # 次のページのカーソル
+  endCursor: String
+  # 前のページのカーソル
+  startCursor: String
+}
+
+type TaskConnection {
+  edges: [TaskEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TaskEdge {
+  cursor: String!
+  node: Task!
+}
+
+input TaskFilterInput {
+  status: Status
+  name: String
+  description: String
+  labels: [String!]
+}
+
+input TaskSortInput {
+  # 優先順位でソート
+  priority: SortDirection
+  # 終了日時でソート
+  endDate: SortDirection
+}
+
+# ソートの方向を表す列挙型
+enum SortDirection {
+  ASC
+  DESC
+}
+
+type Query {
+  # 単一のタスクを取得
+  task(id: ID!): Task
+  # タスク一覧を取得
+  tasks(first: Int = 10, after: String, filter: TaskFilterInput, sort: TaskSortInput): TaskConnection!
+}
+
+input CreateTaskInput {
+  name: String!
+  description: String
+  startDate: Date
+  endDate: Date
+  priority: Priority!
+  labels: [String!]
+  status: Status = TODO
+}
+
+input UpdateTaskInput {
+  name: String
+  description: String
+  startDate: Date
+  endDate: Date
+  priority: Priority
+  labels: [String!]
+  status: Status
+}
+
+type Mutation {
+  createTask(input: CreateTaskInput!): Task
+  updateTask(id: ID!, input: UpdateTaskInput!): Task
+  deleteTask(id: ID!): Task
+}
