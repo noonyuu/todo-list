@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/noonyuu/todo-list/config"
 	"github.com/noonyuu/todo-list/graph"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -17,6 +18,14 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	db, err := config.StartDatabase()
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	if err := db.AutoMigrate(); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
