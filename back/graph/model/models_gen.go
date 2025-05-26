@@ -10,119 +10,90 @@ import (
 	"time"
 )
 
-type CreateTaskInput struct {
-	Name        string     `json:"name"`
-	Description *string    `json:"description,omitempty"`
-	StartDate   *time.Time `json:"startDate,omitempty"`
-	EndDate     *time.Time `json:"endDate,omitempty"`
-	Priority    Priority   `json:"priority"`
-	Labels      []string   `json:"labels,omitempty"`
-	Status      *Status    `json:"status,omitempty"`
-}
-
 type Mutation struct {
 }
 
 type PageInfo struct {
-	HasNextPage     bool    `json:"hasNextPage"`
-	HasPreviousPage bool    `json:"hasPreviousPage"`
-	EndCursor       *string `json:"endCursor,omitempty"`
-	StartCursor     *string `json:"startCursor,omitempty"`
+	EndCursor   *string `json:"endCursor,omitempty"`
+	HasNextPage bool    `json:"hasNextPage"`
 }
 
 type Query struct {
 }
 
-type Task struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description *string    `json:"description,omitempty"`
-	StartDate   *time.Time `json:"startDate,omitempty"`
-	EndDate     *time.Time `json:"endDate,omitempty"`
-	Priority    Priority   `json:"priority"`
-	Labels      []string   `json:"labels,omitempty"`
-	Status      Status     `json:"status"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
-}
-
-type TaskConnection struct {
-	Edges      []*TaskEdge `json:"edges"`
+type TodoConnection struct {
+	Edges      []*TodoEdge `json:"edges"`
 	PageInfo   *PageInfo   `json:"pageInfo"`
 	TotalCount int32       `json:"totalCount"`
 }
 
-type TaskEdge struct {
+type TodoEdge struct {
+	Node   *Todo  `json:"node"`
 	Cursor string `json:"cursor"`
-	Node   *Task  `json:"node"`
 }
 
-type TaskFilterInput struct {
-	Status      *Status  `json:"status,omitempty"`
-	Name        *string  `json:"name,omitempty"`
-	Description *string  `json:"description,omitempty"`
-	Labels      []string `json:"labels,omitempty"`
+type TodoFilterInput struct {
+	StatusIds []string `json:"statusIds,omitempty"`
+	LabelIds  []string `json:"labelIds,omitempty"`
+	Keyword   *string  `json:"keyword,omitempty"`
 }
 
-type TaskSortInput struct {
-	Priority *SortDirection `json:"priority,omitempty"`
-	EndDate  *SortDirection `json:"endDate,omitempty"`
-}
-
-type UpdateTaskInput struct {
-	Name        *string    `json:"name,omitempty"`
+type TodoInput struct {
+	Title       string     `json:"title"`
 	Description *string    `json:"description,omitempty"`
 	StartDate   *time.Time `json:"startDate,omitempty"`
 	EndDate     *time.Time `json:"endDate,omitempty"`
-	Priority    *Priority  `json:"priority,omitempty"`
-	Labels      []string   `json:"labels,omitempty"`
-	Status      *Status    `json:"status,omitempty"`
+	PriorityID  string     `json:"priorityId"`
+	StatusID    string     `json:"statusId"`
+	LabelIds    []string   `json:"labelIds"`
 }
 
-type Priority string
+type TodoSortInput struct {
+	Order *SortOrder `json:"order,omitempty"`
+}
+
+type SortOrder string
 
 const (
-	PriorityHigh   Priority = "HIGH"
-	PriorityMiddle Priority = "MIDDLE"
-	PriorityLow    Priority = "LOW"
+	SortOrderAsc  SortOrder = "ASC"
+	SortOrderDesc SortOrder = "DESC"
 )
 
-var AllPriority = []Priority{
-	PriorityHigh,
-	PriorityMiddle,
-	PriorityLow,
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
 }
 
-func (e Priority) IsValid() bool {
+func (e SortOrder) IsValid() bool {
 	switch e {
-	case PriorityHigh, PriorityMiddle, PriorityLow:
+	case SortOrderAsc, SortOrderDesc:
 		return true
 	}
 	return false
 }
 
-func (e Priority) String() string {
+func (e SortOrder) String() string {
 	return string(e)
 }
 
-func (e *Priority) UnmarshalGQL(v any) error {
+func (e *SortOrder) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = Priority(str)
+	*e = SortOrder(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Priority", str)
+		return fmt.Errorf("%s is not a valid SortOrder", str)
 	}
 	return nil
 }
 
-func (e Priority) MarshalGQL(w io.Writer) {
+func (e SortOrder) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-func (e *Priority) UnmarshalJSON(b []byte) error {
+func (e *SortOrder) UnmarshalJSON(b []byte) error {
 	s, err := strconv.Unquote(string(b))
 	if err != nil {
 		return err
@@ -130,119 +101,7 @@ func (e *Priority) UnmarshalJSON(b []byte) error {
 	return e.UnmarshalGQL(s)
 }
 
-func (e Priority) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type SortDirection string
-
-const (
-	SortDirectionAsc  SortDirection = "ASC"
-	SortDirectionDesc SortDirection = "DESC"
-)
-
-var AllSortDirection = []SortDirection{
-	SortDirectionAsc,
-	SortDirectionDesc,
-}
-
-func (e SortDirection) IsValid() bool {
-	switch e {
-	case SortDirectionAsc, SortDirectionDesc:
-		return true
-	}
-	return false
-}
-
-func (e SortDirection) String() string {
-	return string(e)
-}
-
-func (e *SortDirection) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = SortDirection(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid SortDirection", str)
-	}
-	return nil
-}
-
-func (e SortDirection) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *SortDirection) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e SortDirection) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type Status string
-
-const (
-	StatusNotStarted Status = "NOT_STARTED"
-	StatusInProgress Status = "IN_PROGRESS"
-	StatusDone       Status = "DONE"
-)
-
-var AllStatus = []Status{
-	StatusNotStarted,
-	StatusInProgress,
-	StatusDone,
-}
-
-func (e Status) IsValid() bool {
-	switch e {
-	case StatusNotStarted, StatusInProgress, StatusDone:
-		return true
-	}
-	return false
-}
-
-func (e Status) String() string {
-	return string(e)
-}
-
-func (e *Status) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Status(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Status", str)
-	}
-	return nil
-}
-
-func (e Status) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *Status) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e Status) MarshalJSON() ([]byte, error) {
+func (e SortOrder) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
