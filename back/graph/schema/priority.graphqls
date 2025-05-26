@@ -1,0 +1,13 @@
+type Priority {
+  id: ID!
+  name: String!
+  order: Int!
+}
+
+extend type Query {
+  priorities: [Priority!]!
+}
+
+extend type Mutation {
+  createPriority(name: String!, order: Int!): Priority!
+}

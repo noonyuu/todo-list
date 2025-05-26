@@ -1,0 +1,70 @@
+scalar Date
+scalar DateTime
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input TodoFilterInput {
+  statusIds: [ID!] # ステータス複数選択
+  labelIds: [ID!] # ラベル複数選択
+  keyword: String # タイトル・説明文あいまい検索
+}
+
+input TodoSortInput {
+  order: SortOrder = ASC # 優先度 → 終了日の昇順または降順
+}
+
+input TodoInput {
+  title: String!
+  description: String
+  startDate: Date
+  endDate: Date
+  priorityId: ID!
+  statusId: ID!
+  labelIds: [ID!]!
+}
+
+# types
+type Todo {
+  id: ID!
+  title: String!
+  description: String
+  startDate: Date
+  endDate: Date
+  priority: Priority!
+  status: Status!
+  labels: [Label!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Relay-style pagination
+type TodoConnection {
+  edges: [TodoEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TodoEdge {
+  node: Todo!
+  cursor: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+type Query {
+  todos(filter: TodoFilterInput, sort: TodoSortInput, first: Int = 10, after: String): TodoConnection!
+
+  todo(id: ID!): Todo
+}
+
+type Mutation {
+  createTodo(input: TodoInput!): Todo!
+  updateTodo(id: ID!, input: TodoInput!): Todo!
+  deleteTodo(id: ID!): Boolean!
+}
