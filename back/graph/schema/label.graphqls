@@ -1,0 +1,12 @@
+type Label {
+  id: ID!
+  name: String!
+}
+
+extend type Query {
+  labels: [Label!]!
+}
+
+extend type Mutation {
+  createLabel(name: String!): Label!
+}

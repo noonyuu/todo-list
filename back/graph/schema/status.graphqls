@@ -1,0 +1,14 @@
+type Status {
+  id: ID!
+  code: String!
+  name: String!
+  order: Int!
+}
+
+extend type Query {
+  statuses: [Status!]!
+}
+
+extend type Mutation {
+  createStatus(code: String!, name: String!, order: Int!): Status!
+}
