@@ -12,6 +12,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/noonyuu/todo-list/config"
 	"github.com/noonyuu/todo-list/graph"
+	"github.com/noonyuu/todo-list/graph/resolver"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -31,7 +32,7 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{DB: db}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
