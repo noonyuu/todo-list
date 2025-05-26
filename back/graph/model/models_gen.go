@@ -2,5 +2,107 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+)
+
+type Mutation struct {
+}
+
+type PageInfo struct {
+	EndCursor   *string `json:"endCursor,omitempty"`
+	HasNextPage bool    `json:"hasNextPage"`
+}
+
 type Query struct {
+}
+
+type TodoConnection struct {
+	Edges      []*TodoEdge `json:"edges"`
+	PageInfo   *PageInfo   `json:"pageInfo"`
+	TotalCount int32       `json:"totalCount"`
+}
+
+type TodoEdge struct {
+	Node   *Todo  `json:"node"`
+	Cursor string `json:"cursor"`
+}
+
+type TodoFilterInput struct {
+	StatusIds []string `json:"statusIds,omitempty"`
+	LabelIds  []string `json:"labelIds,omitempty"`
+	Keyword   *string  `json:"keyword,omitempty"`
+}
+
+type TodoInput struct {
+	Title       string     `json:"title"`
+	Description *string    `json:"description,omitempty"`
+	StartDate   *time.Time `json:"startDate,omitempty"`
+	EndDate     *time.Time `json:"endDate,omitempty"`
+	PriorityID  string     `json:"priorityId"`
+	StatusID    string     `json:"statusId"`
+	LabelIds    []string   `json:"labelIds"`
+}
+
+type TodoSortInput struct {
+	Order *SortOrder `json:"order,omitempty"`
+}
+
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "ASC"
+	SortOrderDesc SortOrder = "DESC"
+)
+
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
+}
+
+func (e SortOrder) IsValid() bool {
+	switch e {
+	case SortOrderAsc, SortOrderDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortOrder) String() string {
+	return string(e)
+}
+
+func (e *SortOrder) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortOrder", str)
+	}
+	return nil
+}
+
+func (e SortOrder) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortOrder) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortOrder) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
