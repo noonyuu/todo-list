@@ -6,6 +6,7 @@ package resolver
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -165,7 +166,84 @@ func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (bool, err
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput, sort *model.TodoSortInput, first *int32, after *string) (*model.TodoConnection, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
+	// ページネーションデフォルトの値
+	limit := 10
+	if first != nil {
+		limit = int(*first)
+	}
+
+	db := r.DB.Model(&model.Todo{})
+
+	// フィルターの適用
+	if filter != nil {
+		if len(filter.StatusIds) > 0 {
+			db = db.Where("status_id IN ?", filter.StatusIds)
+		}
+		if len(filter.LabelIds) > 0 {
+			db = db.Joins("JOIN todo_labels ON todo_labels.todo_id = todos.id").
+				Where("todo_labels.label_id IN ?", filter.LabelIds).
+				Group("todos.id")
+		}
+		if filter.Keyword != nil && *filter.Keyword != "" {
+			keyword := "%" + *filter.Keyword + "%"
+			db = db.Where("title LIKE ? OR description LIKE ?", keyword, keyword)
+		}
+	}
+
+	// ソートの適用
+	order := "priority_id ASC, end_date ASC"
+	if sort != nil && sort.Order != nil && *sort.Order == model.SortOrderDesc {
+		order = "priority_id DESC, end_date DESC"
+	}
+	db = db.Order(order)
+
+	// カーソルの処理
+	if after != nil && *after != "" {
+		decodedCursor, err := base64.StdEncoding.DecodeString(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
+		}
+		db = db.Where("id > ?", string(decodedCursor))
+	}
+
+	// データの取得
+	var todos []*model.Todo
+	if err := db.Limit(limit + 1).Find(&todos).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch todos: %w", err)
+	}
+
+	// ページ情報の設定
+	hasNextPage := false
+	if len(todos) > limit {
+		hasNextPage = true
+		todos = todos[:limit]
+	}
+
+	edges := make([]*model.TodoEdge, len(todos))
+	for i, todo := range todos {
+		cursor := base64.StdEncoding.EncodeToString([]byte(todo.ID))
+		edges[i] = &model.TodoEdge{
+			Node:   todo,
+			Cursor: cursor,
+		}
+	}
+
+	endCursor := ""
+	if len(edges) > 0 {
+		endCursor = edges[0].Cursor
+		endCursor = edges[len(edges)-1].Cursor
+	}
+
+	pageInfo := &model.PageInfo{
+		EndCursor:   &endCursor,
+		HasNextPage: hasNextPage,
+	}
+
+	return &model.TodoConnection{
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: int32(len(todos)),
+	}, nil
 }
 
 // Todo is the resolver for the todo field.
