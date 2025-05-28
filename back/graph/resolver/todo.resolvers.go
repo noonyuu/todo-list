@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/noonyuu/todo-list/graph"
 	"github.com/noonyuu/todo-list/graph/model"
+	"gorm.io/gorm"
 )
 
 // CreateTodo is the resolver for the createTodo field.
@@ -119,28 +120,21 @@ func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (bool, err
 		return false, fmt.Errorf("todo not found: %w", err)
 	}
 
-	//  トランザクション
-	tx := r.DB.Begin()
-	if tx.Error != nil {
-		return false, fmt.Errorf("failed to start transaction: %w", tx.Error)
+	// トランザクションを張る
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(todo).Association("Labels").Clear(); err != nil {
+			return fmt.Errorf("failed to clear labels association: %w", err)
+		}
+		if err := tx.Delete(todo).Error; err != nil {
+			return fmt.Errorf("failed to delete todo: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, fmt.Errorf("transaction failed: %w", err)
 	}
 
-	// ラベルの関連を削除
-	if err := tx.Model(todo).Association("Labels").Clear(); err != nil {
-		tx.Rollback()
-		return false, fmt.Errorf("failed to clear labels association: %w", err)
-	}
-
-	// todoを削除
-	if err := tx.Delete(todo).Error; err != nil {
-		tx.Rollback()
-		return false, fmt.Errorf("failed to delete todo: %w", err)
-	}
-
-	// コミット
-	if err := tx.Commit().Error; err != nil {
-		return false, fmt.Errorf("failed to commit transaction: %w", err)
-	}
 	return true, nil
 }
 
