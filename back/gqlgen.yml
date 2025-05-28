@@ -161,3 +161,6 @@ models:
   Date: # GraphQLスキーマの Date スカラー
     model:
       - github.com/99designs/gqlgen/graphql.Time
+  DateTime:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time

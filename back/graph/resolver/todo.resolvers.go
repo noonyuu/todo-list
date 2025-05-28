@@ -67,7 +67,49 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.TodoInput
 
 // UpdateTodo is the resolver for the updateTodo field.
 func (r *mutationResolver) UpdateTodo(ctx context.Context, id string, input model.TodoInput) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: UpdateTodo - updateTodo"))
+	// 入力の検証（優先度・ステータス）
+	var priority model.Priority
+	if err := r.DB.First(&priority, "id = ?", input.PriorityID).Error; err != nil {
+		return nil, fmt.Errorf("invalid priorityId: %s", input.PriorityID)
+	}
+
+	var status model.Status
+	if err := r.DB.First(&status, "id = ?", input.StatusID).Error; err != nil {
+		return nil, fmt.Errorf("invalid statusId: %s", input.StatusID)
+	}
+
+	// ラベルを取得
+	var labels []*model.Label
+	if len(input.LabelIds) > 0 {
+		if err := r.DB.Where("id IN ?", input.LabelIds).Find(&labels).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	// todoの更新
+	todo := &model.Todo{}
+	if err := r.DB.First(todo, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("todo not found: %w", err)
+	}
+	todo.Title = input.Title
+	todo.Description = input.Description
+	todo.StartDate = input.StartDate
+	todo.EndDate = input.EndDate
+	todo.PriorityID = input.PriorityID
+	todo.StatusID = input.StatusID
+	todo.UpdatedAt = time.Now()
+	if err := r.DB.Save(todo).Error; err != nil {
+		return nil, fmt.Errorf("failed to update todo: %w", err)
+	}
+	// 多対多ラベルを関連付け
+	if err := r.DB.Model(todo).Association("Labels").Replace(labels); err != nil {
+		return nil, fmt.Errorf("failed to associate labels: %w", err)
+	}
+	// 関連データを返す
+	if err := r.DB.Preload("Priority").Preload("Status").Preload("Labels").First(todo, "id = ?", todo.ID).Error; err != nil {
+		return nil, fmt.Errorf("failed to load related data: %w", err)
+	}
+	return todo, nil
 }
 
 // DeleteTodo is the resolver for the deleteTodo field.
@@ -89,25 +131,11 @@ func (r *queryResolver) Todo(ctx context.Context, id string) (*model.Todo, error
 	return todo, nil
 }
 
-// CreatedAt is the resolver for the createdAt field.
-func (r *todoResolver) CreatedAt(ctx context.Context, obj *model.Todo) (string, error) {
-	return obj.CreatedAt.Format(time.RFC3339), nil
-}
-
-// UpdatedAt is the resolver for the updatedAt field.
-func (r *todoResolver) UpdatedAt(ctx context.Context, obj *model.Todo) (string, error) {
-	return obj.UpdatedAt.Format(time.RFC3339), nil
-}
-
 // Mutation returns graph.MutationResolver implementation.
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
 // Query returns graph.QueryResolver implementation.
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
-// Todo returns graph.TodoResolver implementation.
-func (r *Resolver) Todo() graph.TodoResolver { return &todoResolver{r} }
-
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type todoResolver struct{ *Resolver }
