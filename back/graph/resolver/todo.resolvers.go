@@ -114,7 +114,22 @@ func (r *mutationResolver) UpdateTodo(ctx context.Context, id string, input mode
 
 // DeleteTodo is the resolver for the deleteTodo field.
 func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteTodo - deleteTodo"))
+	todo := &model.Todo{}
+	if err := r.DB.First(todo, "id = ?", id).Error; err != nil {
+		return false, fmt.Errorf("todo not found: %w", err)
+	}
+
+	// 多対多ラベルの関連を削除
+	if err := r.DB.Model(todo).Association("Labels").Clear(); err != nil {
+		return false, fmt.Errorf("failed to clear labels association: %w", err)
+	}
+
+	// todoを削除
+	if err := r.DB.Delete(todo).Error; err != nil {
+		return false, fmt.Errorf("failed to delete todo: %w", err)
+	}
+
+	return true, nil
 }
 
 // Todos is the resolver for the todos field.
