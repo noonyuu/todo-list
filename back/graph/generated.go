@@ -4988,7 +4988,7 @@ func (ec *executionContext) unmarshalInputTodoFilterInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"statusIds", "labelIds", "keyword"}
+	fieldsInOrder := [...]string{"statusIds", "labelIds", "keywordTitle", "keywordDescription"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5009,13 +5009,20 @@ func (ec *executionContext) unmarshalInputTodoFilterInput(ctx context.Context, o
 				return it, err
 			}
 			it.LabelIds = data
-		case "keyword":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
+		case "keywordTitle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywordTitle"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Keyword = data
+			it.KeywordTitle = data
+		case "keywordDescription":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywordDescription"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.KeywordDescription = data
 		}
 	}
 

@@ -9,7 +9,8 @@ enum SortOrder {
 input TodoFilterInput {
   statusIds: [ID!] # ステータス複数選択
   labelIds: [ID!] # ラベル複数選択
-  keyword: String # タイトル・説明文あいまい検索
+  keywordTitle: String # タイトルあいまい検索
+  keywordDescription: String # 説明文あいまい検索
 }
 
 input TodoSortInput {

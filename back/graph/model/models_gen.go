@@ -33,9 +33,10 @@ type TodoEdge struct {
 }
 
 type TodoFilterInput struct {
-	StatusIds []string `json:"statusIds,omitempty"`
-	LabelIds  []string `json:"labelIds,omitempty"`
-	Keyword   *string  `json:"keyword,omitempty"`
+	StatusIds          []string `json:"statusIds,omitempty"`
+	LabelIds           []string `json:"labelIds,omitempty"`
+	KeywordTitle       *string  `json:"keywordTitle,omitempty"`
+	KeywordDescription *string  `json:"keywordDescription,omitempty"`
 }
 
 type TodoInput struct {
