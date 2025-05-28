@@ -49,18 +49,29 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.TodoInput
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := r.DB.Create(todo).Error; err != nil {
-		return nil, err
-	}
-
-	// 多対多ラベルを関連付け
-	if err := r.DB.Model(todo).Association("Labels").Replace(labels); err != nil {
-		return nil, fmt.Errorf("failed to associate labels: %w", err)
+	// トランザクションを張る
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		// TodoをDBに保存
+		if err := tx.Create(todo).Error; err != nil {
+			return fmt.Errorf("failed to create todo: %w", err)
+		}
+		// labelsの検証
+		if len(labels) != len(input.LabelIds) {
+			return fmt.Errorf("some labels not found")
+		}
+		// 多対多ラベルを関連付け
+		if err := tx.Model(todo).Association("Labels").Replace(labels); err != nil {
+			return fmt.Errorf("failed to associate labels: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("transaction failed: %w", err)
 	}
 
 	// 関連データをロードして返す
 	if err := r.DB.Preload("Priority").Preload("Status").Preload("Labels").First(todo, "id = ?", todo.ID).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load related data: %w", err)
 	}
 
 	return todo, nil
