@@ -184,9 +184,13 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 				Where("todo_labels.label_id IN ?", filter.LabelIds).
 				Group("todos.id")
 		}
-		if filter.Keyword != nil && *filter.Keyword != "" {
-			keyword := "%" + *filter.Keyword + "%"
-			db = db.Where("title LIKE ? OR description LIKE ?", keyword, keyword)
+		if filter.KeywordTitle != nil && *filter.KeywordTitle != "" {
+			keyword := "%" + *filter.KeywordTitle + "%"
+			db = db.Where("title LIKE ?", keyword)
+		}
+		if filter.KeywordDescription != nil && *filter.KeywordDescription != "" {
+			keyword := "%" + *filter.KeywordDescription + "%"
+			db = db.Where("description LIKE ?", keyword)
 		}
 	}
 
