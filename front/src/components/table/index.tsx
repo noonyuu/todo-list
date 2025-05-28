@@ -34,7 +34,7 @@ const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
 
   const formatDateForDisplay = (dateValue?: Date): string => {
     if (!dateValue) return "";
-    if (!isClient) return ""; 
+    if (!isClient) return "";
     return new Date(dateValue).toLocaleDateString();
   };
 
@@ -43,14 +43,16 @@ const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
       <Table sx={{ minWidth: 650 }} aria-label="タスク一覧テーブル">
         <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
           <TableRow>
-            <TableCell sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>タスク名</TableCell>
+            <TableCell style={{ width: "200px" }} sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
+              タスク名
+            </TableCell>
             <TableCell align="center" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
               優先度
             </TableCell>
             <TableCell align="center" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
               ステータス
             </TableCell>
-            <TableCell align="left" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
+            <TableCell style={{ width: "200px" }} align="left" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
               開始日・終了日
             </TableCell>
             <TableCell align="left" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
