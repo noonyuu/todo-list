@@ -119,16 +119,28 @@ func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (bool, err
 		return false, fmt.Errorf("todo not found: %w", err)
 	}
 
-	// 多対多ラベルの関連を削除
-	if err := r.DB.Model(todo).Association("Labels").Clear(); err != nil {
+	//  トランザクション
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return false, fmt.Errorf("failed to start transaction: %w", tx.Error)
+	}
+
+	// ラベルの関連を削除
+	if err := tx.Model(todo).Association("Labels").Clear(); err != nil {
+		tx.Rollback()
 		return false, fmt.Errorf("failed to clear labels association: %w", err)
 	}
 
 	// todoを削除
-	if err := r.DB.Delete(todo).Error; err != nil {
+	if err := tx.Delete(todo).Error; err != nil {
+		tx.Rollback()
 		return false, fmt.Errorf("failed to delete todo: %w", err)
 	}
 
+	// コミット
+	if err := tx.Commit().Error; err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
 	return true, nil
 }
 
