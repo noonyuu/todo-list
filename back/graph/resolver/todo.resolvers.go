@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/noonyuu/todo-list/graph"
 	"github.com/noonyuu/todo-list/graph/model"
+	"gorm.io/gorm"
 )
 
 // CreateTodo is the resolver for the createTodo field.
@@ -48,18 +49,29 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.TodoInput
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := r.DB.Create(todo).Error; err != nil {
-		return nil, err
-	}
-
-	// 多対多ラベルを関連付け
-	if err := r.DB.Model(todo).Association("Labels").Replace(labels); err != nil {
-		return nil, fmt.Errorf("failed to associate labels: %w", err)
+	// トランザクションを張る
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		// TodoをDBに保存
+		if err := tx.Create(todo).Error; err != nil {
+			return fmt.Errorf("failed to create todo: %w", err)
+		}
+		// labelsの検証
+		if len(labels) != len(input.LabelIds) {
+			return fmt.Errorf("some labels not found")
+		}
+		// 多対多ラベルを関連付け
+		if err := tx.Model(todo).Association("Labels").Replace(labels); err != nil {
+			return fmt.Errorf("failed to associate labels: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("transaction failed: %w", err)
 	}
 
 	// 関連データをロードして返す
 	if err := r.DB.Preload("Priority").Preload("Status").Preload("Labels").First(todo, "id = ?", todo.ID).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load related data: %w", err)
 	}
 
 	return todo, nil
@@ -67,6 +79,11 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.TodoInput
 
 // UpdateTodo is the resolver for the updateTodo field.
 func (r *mutationResolver) UpdateTodo(ctx context.Context, id string, input model.TodoInput) (*model.Todo, error) {
+	var todo model.Todo
+	if err := r.DB.Preload("Labels").First(&todo, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("todo not found: %w", err)
+	}
+
 	// 入力の検証（優先度・ステータス）
 	var priority model.Priority
 	if err := r.DB.First(&priority, "id = ?", input.PriorityID).Error; err != nil {
@@ -84,32 +101,41 @@ func (r *mutationResolver) UpdateTodo(ctx context.Context, id string, input mode
 		if err := r.DB.Where("id IN ?", input.LabelIds).Find(&labels).Error; err != nil {
 			return nil, err
 		}
+		if len(labels) != len(input.LabelIds) {
+			return nil, fmt.Errorf("some labels not found")
+		}
 	}
 
-	// todoの更新
-	todo := &model.Todo{}
-	if err := r.DB.First(todo, "id = ?", id).Error; err != nil {
-		return nil, fmt.Errorf("todo not found: %w", err)
+	// トランザクションを張る
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		todo.Title = input.Title
+		todo.Description = input.Description
+		todo.StartDate = input.StartDate
+		todo.EndDate = input.EndDate
+		todo.PriorityID = input.PriorityID
+		todo.StatusID = input.StatusID
+		todo.UpdatedAt = time.Now()
+
+		if err := tx.Save(&todo).Error; err != nil {
+			return fmt.Errorf("failed to update todo: %w", err)
+		}
+
+		if err := tx.Model(&todo).Association("Labels").Replace(labels); err != nil {
+			return fmt.Errorf("failed to associate labels: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("transaction failed: %w", err)
 	}
-	todo.Title = input.Title
-	todo.Description = input.Description
-	todo.StartDate = input.StartDate
-	todo.EndDate = input.EndDate
-	todo.PriorityID = input.PriorityID
-	todo.StatusID = input.StatusID
-	todo.UpdatedAt = time.Now()
-	if err := r.DB.Save(todo).Error; err != nil {
-		return nil, fmt.Errorf("failed to update todo: %w", err)
-	}
-	// 多対多ラベルを関連付け
-	if err := r.DB.Model(todo).Association("Labels").Replace(labels); err != nil {
-		return nil, fmt.Errorf("failed to associate labels: %w", err)
-	}
-	// 関連データを返す
-	if err := r.DB.Preload("Priority").Preload("Status").Preload("Labels").First(todo, "id = ?", todo.ID).Error; err != nil {
+
+	// 関連データをロードして返す
+	if err := r.DB.Preload("Priority").Preload("Status").Preload("Labels").First(&todo, "id = ?", todo.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load related data: %w", err)
 	}
-	return todo, nil
+
+	return &todo, nil
 }
 
 // DeleteTodo is the resolver for the deleteTodo field.
@@ -119,28 +145,21 @@ func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (bool, err
 		return false, fmt.Errorf("todo not found: %w", err)
 	}
 
-	//  トランザクション
-	tx := r.DB.Begin()
-	if tx.Error != nil {
-		return false, fmt.Errorf("failed to start transaction: %w", tx.Error)
+	// トランザクションを張る
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(todo).Association("Labels").Clear(); err != nil {
+			return fmt.Errorf("failed to clear labels association: %w", err)
+		}
+		if err := tx.Delete(todo).Error; err != nil {
+			return fmt.Errorf("failed to delete todo: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, fmt.Errorf("transaction failed: %w", err)
 	}
 
-	// ラベルの関連を削除
-	if err := tx.Model(todo).Association("Labels").Clear(); err != nil {
-		tx.Rollback()
-		return false, fmt.Errorf("failed to clear labels association: %w", err)
-	}
-
-	// todoを削除
-	if err := tx.Delete(todo).Error; err != nil {
-		tx.Rollback()
-		return false, fmt.Errorf("failed to delete todo: %w", err)
-	}
-
-	// コミット
-	if err := tx.Commit().Error; err != nil {
-		return false, fmt.Errorf("failed to commit transaction: %w", err)
-	}
 	return true, nil
 }
 
