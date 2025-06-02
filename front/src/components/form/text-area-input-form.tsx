@@ -13,7 +13,7 @@ export const TextAreaInputForm = <T extends FieldValues>({ label, ...props }: Te
 
   return (
     <FieldWrapper label={label} errorMessage={error?.message}>
-      <TextareaAutosize {...field} aria-label="minimum height" minRows={8} style={{ backgroundColor: "#FFFFFF" }} />
+      <TextareaAutosize {...field} aria-label="minimum height" minRows={8} style={{ backgroundColor: "#FFFFFF", color: "#141414", padding: "4px 12px", fontSize: "16px" }} />
     </FieldWrapper>
   );
 };
