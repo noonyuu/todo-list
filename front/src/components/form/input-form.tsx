@@ -3,9 +3,12 @@ import TextField from "@mui/material/TextField";
 import { FieldValues, useController, UseControllerProps } from "react-hook-form";
 import { FieldWrapper, FieldWrapperProps } from "./field-wrapper";
 
-export type InputFormProps<T extends FieldValues> = UseControllerProps<T> & Pick<FieldWrapperProps, "label">;
+export type InputFormProps<T extends FieldValues> = {
+  type?: string;
+} & UseControllerProps<T> &
+  Pick<FieldWrapperProps, "label">;
 
-export const TextInputForm = <T extends FieldValues>({ label, ...props }: InputFormProps<T>): JSX.Element => {
+export const TextInputForm = <T extends FieldValues>({ label, type, ...props }: InputFormProps<T>): JSX.Element => {
   const {
     field,
     fieldState: { error },
@@ -13,7 +16,7 @@ export const TextInputForm = <T extends FieldValues>({ label, ...props }: InputF
 
   return (
     <FieldWrapper label={label} errorMessage={error?.message}>
-      <TextField {...field} fullWidth variant="outlined" />
+      <TextField {...field} fullWidth variant="outlined" type={type} />
     </FieldWrapper>
   );
 };
