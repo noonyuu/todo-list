@@ -14,10 +14,9 @@ import (
 )
 
 // CreateStatus is the resolver for the createStatus field.
-func (r *mutationResolver) CreateStatus(ctx context.Context, code string, name string, order int32) (*model.Status, error) {
+func (r *mutationResolver) CreateStatus(ctx context.Context, name string, order int32) (*model.Status, error) {
 	status := &model.Status{
 		ID:    uuid.NewString(),
-		Code:  code,
 		Name:  name,
 		Order: int(order),
 	}

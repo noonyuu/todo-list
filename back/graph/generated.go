@@ -58,7 +58,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateLabel    func(childComplexity int, name string) int
 		CreatePriority func(childComplexity int, name string, order int32) int
-		CreateStatus   func(childComplexity int, code string, name string, order int32) int
+		CreateStatus   func(childComplexity int, name string, order int32) int
 		CreateTodo     func(childComplexity int, input model.TodoInput) int
 		DeleteTodo     func(childComplexity int, id string) int
 		UpdateTodo     func(childComplexity int, id string, input model.TodoInput) int
@@ -84,7 +84,6 @@ type ComplexityRoot struct {
 	}
 
 	Status struct {
-		Code  func(childComplexity int) int
 		ID    func(childComplexity int) int
 		Name  func(childComplexity int) int
 		Order func(childComplexity int) int
@@ -121,7 +120,7 @@ type MutationResolver interface {
 	DeleteTodo(ctx context.Context, id string) (bool, error)
 	CreateLabel(ctx context.Context, name string) (*model.Label, error)
 	CreatePriority(ctx context.Context, name string, order int32) (*model.Priority, error)
-	CreateStatus(ctx context.Context, code string, name string, order int32) (*model.Status, error)
+	CreateStatus(ctx context.Context, name string, order int32) (*model.Status, error)
 }
 type PriorityResolver interface {
 	Order(ctx context.Context, obj *model.Priority) (int32, error)
@@ -204,7 +203,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateStatus(childComplexity, args["code"].(string), args["name"].(string), args["order"].(int32)), true
+		return e.complexity.Mutation.CreateStatus(childComplexity, args["name"].(string), args["order"].(int32)), true
 
 	case "Mutation.createTodo":
 		if e.complexity.Mutation.CreateTodo == nil {
@@ -321,13 +320,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Todos(childComplexity, args["filter"].(*model.TodoFilterInput), args["sort"].(*model.TodoSortInput), args["first"].(*int32), args["after"].(*string)), true
-
-	case "Status.code":
-		if e.complexity.Status.Code == nil {
-			break
-		}
-
-		return e.complexity.Status.Code(childComplexity), true
 
 	case "Status.id":
 		if e.complexity.Status.ID == nil {
@@ -652,36 +644,18 @@ func (ec *executionContext) field_Mutation_createPriority_argsOrder(
 func (ec *executionContext) field_Mutation_createStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_createStatus_argsCode(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_createStatus_argsName(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["code"] = arg0
-	arg1, err := ec.field_Mutation_createStatus_argsName(ctx, rawArgs)
+	args["name"] = arg0
+	arg1, err := ec.field_Mutation_createStatus_argsOrder(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["name"] = arg1
-	arg2, err := ec.field_Mutation_createStatus_argsOrder(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["order"] = arg2
+	args["order"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_createStatus_argsCode(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
-	if tmp, ok := rawArgs["code"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
 func (ec *executionContext) field_Mutation_createStatus_argsName(
 	ctx context.Context,
 	rawArgs map[string]any,
@@ -1453,7 +1427,7 @@ func (ec *executionContext) _Mutation_createStatus(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateStatus(rctx, fc.Args["code"].(string), fc.Args["name"].(string), fc.Args["order"].(int32))
+		return ec.resolvers.Mutation().CreateStatus(rctx, fc.Args["name"].(string), fc.Args["order"].(int32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1480,8 +1454,6 @@ func (ec *executionContext) fieldContext_Mutation_createStatus(ctx context.Conte
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Status_id(ctx, field)
-			case "code":
-				return ec.fieldContext_Status_code(ctx, field)
 			case "name":
 				return ec.fieldContext_Status_name(ctx, field)
 			case "order":
@@ -2001,8 +1973,6 @@ func (ec *executionContext) fieldContext_Query_statuses(_ context.Context, field
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Status_id(ctx, field)
-			case "code":
-				return ec.fieldContext_Status_code(ctx, field)
 			case "name":
 				return ec.fieldContext_Status_name(ctx, field)
 			case "order":
@@ -2184,50 +2154,6 @@ func (ec *executionContext) fieldContext_Status_id(_ context.Context, field grap
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Status_code(ctx context.Context, field graphql.CollectedField, obj *model.Status) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Status_code(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Code, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Status_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Status",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2625,8 +2551,6 @@ func (ec *executionContext) fieldContext_Todo_status(_ context.Context, field gr
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Status_id(ctx, field)
-			case "code":
-				return ec.fieldContext_Status_code(ctx, field)
 			case "name":
 				return ec.fieldContext_Status_name(ctx, field)
 			case "order":
@@ -5556,11 +5480,6 @@ func (ec *executionContext) _Status(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = graphql.MarshalString("Status")
 		case "id":
 			out.Values[i] = ec._Status_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
-			}
-		case "code":
-			out.Values[i] = ec._Status_code(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

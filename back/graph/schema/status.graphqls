@@ -1,6 +1,5 @@
 type Status {
   id: ID!
-  code: String!
   name: String!
   order: Int!
 }
@@ -10,5 +9,5 @@ extend type Query {
 }
 
 extend type Mutation {
-  createStatus(code: String!, name: String!, order: Int!): Status!
+  createStatus(name: String!, order: Int!): Status!
 }
