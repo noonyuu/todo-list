@@ -31,7 +31,7 @@ func (r *mutationResolver) CreatePriority(ctx context.Context, name string, orde
 
 // Order is the resolver for the order field.
 func (r *priorityResolver) Order(ctx context.Context, obj *model.Priority) (int32, error) {
-	panic(fmt.Errorf("not implemented: Order - order"))
+	return int32(obj.Order), nil
 }
 
 // Priorities is the resolver for the priorities field.
