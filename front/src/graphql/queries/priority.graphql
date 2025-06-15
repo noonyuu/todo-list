@@ -1,0 +1,7 @@
+query GetPriorities {
+  priorities {
+    id
+    name
+    order
+  }
+}
