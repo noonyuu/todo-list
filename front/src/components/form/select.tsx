@@ -4,9 +4,9 @@ import { MenuItem, Select as MuiSelect, Box, Chip } from "@mui/material";
 import { FieldWrapper, FieldWrapperProps } from "./field-wrapper";
 
 export type SelectProps<T extends FieldValues> = {
-  options: { label: string; value: number }[];
+  options: { label: string; value: string }[];
   multiple?: boolean;
-  renderValue?: (value: number | number[]) => React.ReactNode;
+  renderValue?: (value: string | string[]) => React.ReactNode;
 } & UseControllerProps<T> &
   Pick<FieldWrapperProps, "label">;
 
@@ -16,18 +16,18 @@ export const Select = <T extends FieldValues>({ label, options, multiple = false
     fieldState: { error },
   } = useController(props);
 
-  const defaultRenderValue = (selected: number | number[]) => {
+  const defaultRenderValue = (selected: string | string[]) => {
     if (multiple && Array.isArray(selected)) {
       return (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
           {selected.map((val) => {
-            const option = options.find((opt) => opt.value === val);
+            const option = options.find((opt) => opt.value === String(val));
             return <Chip key={val} label={option?.label || val} />;
           })}
         </Box>
       );
     } else {
-      const option = options.find((opt) => opt.value === selected);
+      const option = options.find((opt) => opt.value === String(selected));
       return option?.label || selected;
     }
   };

@@ -1,0 +1,6 @@
+query GetLabels {
+  labels {
+    id
+    name
+  }
+}

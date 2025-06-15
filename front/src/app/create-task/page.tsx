@@ -2,46 +2,104 @@
 
 import * as React from "react";
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Container, Typography, Box, Grid, Chip } from "@mui/material";
 import { SubmitHandler, useForm } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TextInputForm } from "../../components/form/input-form";
-import { TextAreaInputForm } from "../../components/form/text-area-input-form";
+
+import { TextInputForm } from "@/components/form/input-form";
+import { TextAreaInputForm } from "@/components/form/text-area-input-form";
 import { Select } from "@/components/form/select";
 import { Button } from "@/components/button";
+import { useCreateTodoMutation, useGetLabelsQuery, useGetPrioritiesQuery, useGetStatsQuery } from "@/generated/graphql";
 
-const formSchema = z.object({
-  textInput: z.string().nonempty({ message: "テキスト入力は必須です" }).min(2, { message: "2文字以上入力してください" }),
-  description: z.string(),
-  priority: z.number().int().min(1, { message: "優先度を選択してください" }),
-  status: z.number().int().min(1, { message: "ステータスを選択してください" }),
-  label: z.array(z.number({ invalid_type_error: "ラベルの値は数値である必要があります" })).nonempty({ message: "少なくとも1つのラベルを選択してください" }),
-  startDate: z.string().nonempty({ message: "開始日を選択してください" }),
-  endDate: z.string().nonempty({ message: "終了日を選択してください" }),
+const formInputSchema = z.object({
+  titleInput: z.string().nonempty({ message: "タイトル入力は必須です" }).min(2, { message: "2文字以上入力してください" }),
+  description: z.string().optional(),
+  priority: z.string().nonempty({ message: "優先度は必須です" }),
+  status: z.string().nonempty({ message: "ステータスは必須です" }),
+  label: z.array(z.string()).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
-type FormSchema = z.input<typeof formSchema>;
+const formOutputSchema = formInputSchema.extend({
+  priority: z.string().nonempty(),
+  status: z.string().nonempty(),
+});
+
+type FormSchema = z.infer<typeof formInputSchema>;
+type OutputSchema = z.infer<typeof formOutputSchema>;
 
 export default function CreateTaskPage() {
+  const router = useRouter();
+
+  // すべてのHooksを最初に配置
   const { control, handleSubmit } = useForm<FormSchema>({
     defaultValues: {
-      textInput: "",
+      titleInput: "",
+      priority: "",
+      status: "",
+      label: [],
     },
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formInputSchema),
   });
 
-  const selectOptions = [
-    { label: "バグ", value: 1 },
-    { label: "機能追加", value: 2 },
-    { label: "改善", value: 3 },
-    { label: "ドキュメント", value: 4 },
-    { label: "緊急", value: 5 },
-  ];
+  const { data: labelData, loading: labelLoading, error: labelError } = useGetLabelsQuery();
+  const { data: priorityData, loading: priorityLoading, error: priorityError } = useGetPrioritiesQuery();
+  const { data: statusData, loading: statusLoading, error: statusError } = useGetStatsQuery();
+  const [createTodo, { loading: createLoading, error: createError }] = useCreateTodoMutation();
 
-  const onSubmit: SubmitHandler<FormSchema> = useCallback((data) => {
-    alert(JSON.stringify(data));
+  const onSubmit: SubmitHandler<FormSchema> = useCallback(async (data) => {
+    try {
+      // 送信時にデータを変換
+      const transformedData: OutputSchema = formOutputSchema.parse(data);
+      const result = await createTodo({
+        variables: {
+          input: {
+            title: transformedData.titleInput,
+            description: transformedData.description,
+            priorityId: transformedData.priority,
+            statusId: transformedData.status,
+            labelIds: transformedData.label ?? [],
+            startDate: transformedData.startDate,
+            endDate: transformedData.endDate,
+          },
+        },
+      });
+      // ホーム画面にリダイレクト
+      if (result.data?.createTodo) {
+        alert("タスクが作成されました");
+        router.push("/");
+      } else {
+        alert("タスクの作成に失敗しました");
+      }
+    } catch (error) {
+      console.error("Validation error:", error);
+    }
   }, []);
+
+  // GraphQLから取得したラベルをselectOptionsに変換
+  const selectOptions =
+    labelData?.labels?.map((label) => ({
+      label: label.name,
+      value: label.id,
+    })) || [];
+
+  // 優先度のオプションをGraphQLから取得
+  const priorityOptions =
+    priorityData?.priorities?.map((priority) => ({
+      label: priority.name,
+      value: priority.id,
+    })) || [];
+
+  // ステータスのオプションをGraphQLから取得
+  const statusOptions =
+    statusData?.statuses?.map((status) => ({
+      label: status.name,
+      value: status.id,
+    })) || [];
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
@@ -50,35 +108,15 @@ export default function CreateTaskPage() {
       </Typography>
 
       <Box>
-        <TextInputForm control={control} name="textInput" label={"タスク名"}></TextInputForm>
-        <TextAreaInputForm control={control} name="description" label={"説明文"}></TextAreaInputForm>
+        <TextInputForm control={control} name="titleInput" label={"タスク名"} />
+        <TextAreaInputForm control={control} name="description" label={"説明文"} />
 
         <Grid container spacing={2} sx={{ mb: 1.5 }}>
-          {/* Gridのマージンを少し調整 */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Select
-              control={control}
-              options={[
-                { label: "高", value: 1 },
-                { label: "中", value: 2 },
-                { label: "低", value: 3 },
-              ]}
-              name={"priority"}
-              label={"優先度"}
-            />
+            <Select control={control} options={priorityOptions} name={"priority"} label={"優先度"} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Select
-              control={control}
-              options={[
-                { label: "未着手", value: 1 },
-                { label: "作業中", value: 2 },
-                { label: "レビュー待ち", value: 3 },
-                { label: "完了", value: 4 },
-              ]}
-              name={"status"}
-              label={"ステータス"}
-            />
+            <Select control={control} options={statusOptions} name={"status"} label={"ステータス"} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <Select
@@ -87,7 +125,7 @@ export default function CreateTaskPage() {
               name="label"
               label="ラベル"
               multiple={true}
-              renderValue={(selected: number | number[]) => {
+              renderValue={(selected: string | string[]) => {
                 if (Array.isArray(selected)) {
                   return (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>

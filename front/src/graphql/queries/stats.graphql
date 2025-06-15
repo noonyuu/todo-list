@@ -1,0 +1,8 @@
+query GetStats {
+  statuses {
+    id
+    code
+    name
+    order
+  }
+}
