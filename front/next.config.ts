@@ -1,7 +1,18 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: "standalone",
 
-const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    NEXT_PUBLIC_GRAPHQL_ENDPOINT: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
+  },
+
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
