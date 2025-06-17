@@ -48,7 +48,6 @@ export type MutationCreatePriorityArgs = {
 
 
 export type MutationCreateStatusArgs = {
-  code: Scalars['String']['input'];
   name: Scalars['String']['input'];
   order: Scalars['Int']['input'];
 };
@@ -110,7 +109,6 @@ export type SortOrder =
 
 export type Status = {
   __typename?: 'Status';
-  code: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   order: Scalars['Int']['output'];
@@ -177,7 +175,7 @@ export type GetPrioritiesQuery = { __typename?: 'Query', priorities: Array<{ __t
 export type GetStatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetStatsQuery = { __typename?: 'Query', statuses: Array<{ __typename?: 'Status', id: string, code: string, name: string, order: number }> };
+export type GetStatsQuery = { __typename?: 'Query', statuses: Array<{ __typename?: 'Status', id: string, name: string, order: number }> };
 
 export type CreateTodoMutationVariables = Exact<{
   input: TodoInput;
@@ -272,7 +270,6 @@ export const GetStatsDocument = gql`
     query GetStats {
   statuses {
     id
-    code
     name
     order
   }
