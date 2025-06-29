@@ -7,6 +7,7 @@ enum SortOrder {
 }
 
 input TodoFilterInput {
+  priorityIds: ID # 優先度
   statusIds: [ID!] # ステータス複数選択
   labelIds: [ID!] # ラベル複数選択
   keywordTitle: String # タイトルあいまい検索
@@ -14,7 +15,7 @@ input TodoFilterInput {
 }
 
 input TodoSortInput {
-  order: SortOrder = ASC # 優先度 → 終了日の昇順または降順
+  order: SortOrder # ソート順
 }
 
 input TodoInput {
