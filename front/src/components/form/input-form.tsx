@@ -16,7 +16,7 @@ export const TextInputForm = <T extends FieldValues>({ label, type, ...props }: 
 
   return (
     <FieldWrapper label={label} errorMessage={error?.message}>
-      <TextField {...field} fullWidth variant="outlined" type={type} />
+      <TextField {...field} value={field.value ?? ""} fullWidth variant="outlined" type={type} />
     </FieldWrapper>
   );
 };
