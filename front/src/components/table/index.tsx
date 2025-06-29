@@ -93,7 +93,7 @@ const TodoTable = ({ todoItems = [] }: TableProps) => {
               ラベル
             </TableCell>
             <TableCell align="left" sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
-              詳細
+              説明
             </TableCell>
           </TableRow>
         </TableHead>
