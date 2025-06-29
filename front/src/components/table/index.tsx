@@ -1,8 +1,20 @@
 "use client";
 
-import React, { JSX, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, ChipProps } from "@mui/material";
-import { Priority, TodoItem } from "@/app/types/todo";
+import { Label, Priority, Status } from "@/generated/graphql";
+
+// GraphQLから取得したデータに基づく型定義
+type TodoItem = {
+  id: string;
+  title: string;
+  description?: string;
+  startDate?: Date;
+  endDate?: Date;
+  priority?: { __typename?: string; id: string; name: string } | null;
+  status?: { __typename?: string; id: string; name: string } | null;
+  labels?: { __typename?: string; id: string; name: string }[];
+};
 
 type PartialTodo = Partial<TodoItem>;
 
@@ -10,20 +22,37 @@ type TableProps = {
   todoItems?: PartialTodo[];
 };
 
-const getPriorityColor = (priority?: Priority): ChipProps["color"] => {
-  switch (priority) {
-    case Priority.High:
+const getPriorityColor = (priority?: string): ChipProps["color"] => {
+  if (!priority) return "default";
+
+  switch (priority.toLowerCase()) {
+    case "high":
       return "error";
-    case Priority.Medium:
+    case "medium":
       return "warning";
-    case Priority.Low:
+    case "low":
       return "info";
     default:
       return "default";
   }
 };
 
-const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
+const getStatusColor = (status?: string): ChipProps["color"] => {
+  if (!status) return "default";
+
+  switch (status.toLowerCase()) {
+    case "完了":
+      return "success";
+    case "着手":
+      return "primary";
+    case "未着手":
+      return "warning";
+    default:
+      return "default";
+  }
+};
+
+const TodoTable = ({ todoItems = [] }: TableProps) => {
   const [isClient, setIsClient] = useState<boolean>(false);
 
   useEffect(() => {
@@ -35,12 +64,17 @@ const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
   const formatDateForDisplay = (dateValue?: Date): string => {
     if (!dateValue) return "";
     if (!isClient) return "";
-    return new Date(dateValue).toLocaleDateString();
+
+    try {
+      return new Date(dateValue).toLocaleDateString("ja-JP");
+    } catch (error) {
+      return "";
+    }
   };
 
   return (
-    <TableContainer component={Paper} sx={{ borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", overflowX: "auto" }}>
-      <Table sx={{ minWidth: 650 }} aria-label="タスク一覧テーブル">
+    <TableContainer component={Paper} sx={{ borderRadius: 0, boxShadow: "none", height: "100%" }}>
+      <Table sx={{ minWidth: 650 }} aria-label="タスク一覧テーブル" stickyHeader>
         <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
           <TableRow>
             <TableCell style={{ width: "200px" }} sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
@@ -64,9 +98,9 @@ const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {itemsToDisplay.map((task) => (
+          {itemsToDisplay.map((task, index) => (
             <TableRow
-              key={task.id}
+              key={task.id || `todo-${index}`}
               sx={{
                 "&:last-child td, &:last-child th": { border: 0 },
                 "&:hover": { backgroundColor: "#f9f9f9" },
@@ -75,16 +109,28 @@ const TodoTable = ({ todoItems = [] }: TableProps): JSX.Element => {
               <TableCell component="th" scope="row">
                 {task.title || ""}
               </TableCell>
-              <TableCell align="center">{task.priority ? <Chip label={task.priority} color={getPriorityColor(task.priority)} size="small" sx={{ fontWeight: "medium" }} /> : ""}</TableCell>
-              <TableCell align="center">{task.status ? task.status : ""}</TableCell>
-              <TableCell align="left">{[formatDateForDisplay(task.startDate), formatDateForDisplay(task.endDate)].filter(Boolean).join(" - ")}</TableCell>
-              <TableCell align="left">{task.labels && task.labels.length > 0 ? task.labels.map((label, index) => <Chip key={`${task.id}-label-${index}`} label={label} variant="outlined" size="small" sx={{ marginRight: "4px", marginBottom: "4px" }} />) : ""}</TableCell>
-              <TableCell align="left">{task.description || ""}</TableCell>
+              <TableCell align="center">{task.priority ? <Chip label={typeof task.priority === "string" ? task.priority : task.priority.name || ""} color={getPriorityColor(typeof task.priority === "string" ? task.priority : task.priority.name)} size="small" sx={{ fontWeight: "medium" }} /> : "-"}</TableCell>
+              <TableCell align="center">{task.status ? <Chip label={typeof task.status === "string" ? task.status : task.status.name || ""} color={getStatusColor(typeof task.status === "string" ? task.status : task.status.name)} size="small" variant="outlined" sx={{ fontWeight: "medium" }} /> : "-"}</TableCell>
+              <TableCell align="left">{[formatDateForDisplay(task.startDate), formatDateForDisplay(task.endDate)].filter(Boolean).join(" - ") || "-"}</TableCell>
+              <TableCell align="left">
+                {task.labels && task.labels.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                    {task.labels.map((label, labelIndex) => (
+                      <Chip key={`${task.id || index}-label-${labelIndex}`} label={typeof label === "string" ? label : label?.name || ""} variant="outlined" size="small" color="secondary" />
+                    ))}
+                  </div>
+                ) : (
+                  "-"
+                )}
+              </TableCell>
+              <TableCell align="left">
+                <div style={{ maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis" }}>{task.description || "-"}</div>
+              </TableCell>
             </TableRow>
           ))}
           {itemsToDisplay.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} align="center">
+              <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                 該当するタスクが見つかりません。
               </TableCell>
             </TableRow>
