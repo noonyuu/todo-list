@@ -189,16 +189,13 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 				Where("todo_labels.label_id IN ?", filter.LabelIds).
 				Group("todos.id")
 		}
-		if sort.Order != nil {
-			if *sort.Order == model.SortOrderAsc {
-				db = db.Order("end_date ASC NULLS LAST, id ASC")
-			} else if *sort.Order == model.SortOrderDesc {
-				db = db.Order("end_date DESC NULLS LAST, id DESC")
-			}
-		} else {
-			// デフォルトのソート
-			db = db.Order("created_at DESC, id DESC")
-		}
+		// if sort.Order != nil {
+		// 	if *sort.Order == model.SortOrderAsc {
+		// 		db = db.Order("end_date ASC, id ASC")
+		// 	} else if *sort.Order == model.SortOrderDesc {
+		// 		db = db.Order("end_date DESC, id DESC")
+		// 	}
+		// }
 		if filter.KeywordTitle != nil && *filter.KeywordTitle != "" {
 			keyword := "%" + *filter.KeywordTitle + "%"
 			db = db.Where("title LIKE ?", keyword)
@@ -216,15 +213,25 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 		return nil, fmt.Errorf("failed to count todos: %w", err)
 	}
 
+	var isDesc bool
+	var orderClause string
+
 	// ソートの適用
-	isDesc := sort != nil && sort.Order != nil && *sort.Order == model.SortOrderDesc
-	var order string
-	if isDesc {
-		order = "created_at DESC, id DESC"
+	if sort != nil && sort.Order != nil {
+		if *sort.Order == model.SortOrderAsc {
+			orderClause = "end_date ASC NULLS LAST, created_at ASC, id ASC"
+			isDesc = false
+		} else {
+			orderClause = "end_date DESC NULLS LAST, created_at DESC, id DESC"
+			isDesc = true
+		}
 	} else {
-		order = "created_at ASC, id ASC"
+		// デフォルト
+		orderClause = "created_at DESC, id DESC"
+		isDesc = true
 	}
-	db = db.Order(order)
+
+	db = db.Order(orderClause)
 
 	// カーソル処理
 	if after != nil && *after != "" {
@@ -241,15 +248,11 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 		}
 
 		if isDesc {
-			db = db.Where(
-				"created_at < ? OR (created_at = ? AND id < ?)",
-				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID,
-			)
+			db = db.Where("created_at < ? OR (created_at = ? AND id < ?)",
+				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID)
 		} else {
-			db = db.Where(
-				"created_at > ? OR (created_at = ? AND id > ?)",
-				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID,
-			)
+			db = db.Where("created_at > ? OR (created_at = ? AND id > ?)",
+				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID)
 		}
 	}
 
