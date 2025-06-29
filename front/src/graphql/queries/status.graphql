@@ -1,7 +1,6 @@
-query GetStats {
+query GetStatuses {
   statuses {
     id
-    code
     name
     order
   }

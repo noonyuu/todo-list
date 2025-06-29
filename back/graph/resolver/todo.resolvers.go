@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -171,11 +172,15 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 	if first != nil {
 		limit = int(*first)
 	}
+	log.Print(sort.Order)
 
 	db := r.DB.Model(&model.Todo{})
 
-	// フィルターの適用
+	// フィルターの適用（totalCount取得前に実行）
 	if filter != nil {
+		if filter.PriorityIds != nil && len(*filter.PriorityIds) > 0 {
+			db = db.Where("priority_id = ?", *filter.PriorityIds)
+		}
 		if len(filter.StatusIds) > 0 {
 			db = db.Where("status_id IN ?", filter.StatusIds)
 		}
@@ -184,6 +189,13 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 				Where("todo_labels.label_id IN ?", filter.LabelIds).
 				Group("todos.id")
 		}
+		// if sort.Order != nil {
+		// 	if *sort.Order == model.SortOrderAsc {
+		// 		db = db.Order("end_date ASC, id ASC")
+		// 	} else if *sort.Order == model.SortOrderDesc {
+		// 		db = db.Order("end_date DESC, id DESC")
+		// 	}
+		// }
 		if filter.KeywordTitle != nil && *filter.KeywordTitle != "" {
 			keyword := "%" + *filter.KeywordTitle + "%"
 			db = db.Where("title LIKE ?", keyword)
@@ -194,35 +206,69 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 		}
 	}
 
-	// ソートの適用
-	order := "priority_id ASC, end_date ASC"
-	if sort != nil && sort.Order != nil && *sort.Order == model.SortOrderDesc {
-		order = "priority_id DESC, end_date DESC"
+	// フィルター適用後の全体件数を取得
+	var totalCount int64
+	countDB := db.Session(&gorm.Session{})
+	if err := countDB.Count(&totalCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to count todos: %w", err)
 	}
-	db = db.Order(order)
 
-	// カーソルの処理
+	var isDesc bool
+	var orderClause string
+
+	// ソートの適用
+	if sort != nil && sort.Order != nil {
+		if *sort.Order == model.SortOrderAsc {
+			orderClause = "end_date ASC NULLS LAST, created_at ASC, id ASC"
+			isDesc = false
+		} else {
+			orderClause = "end_date DESC NULLS LAST, created_at DESC, id DESC"
+			isDesc = true
+		}
+	} else {
+		// デフォルト
+		orderClause = "created_at DESC, id DESC"
+		isDesc = true
+	}
+
+	db = db.Order(orderClause)
+
+	// カーソル処理
 	if after != nil && *after != "" {
 		decodedCursor, err := base64.StdEncoding.DecodeString(*after)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
-		db = db.Where("id > ?", string(decodedCursor))
+
+		cursorID := string(decodedCursor)
+
+		var cursorTodo model.Todo
+		if err := r.DB.Where("id = ?", cursorID).First(&cursorTodo).Error; err != nil {
+			return nil, fmt.Errorf("invalid cursor todo: %w", err)
+		}
+
+		if isDesc {
+			db = db.Where("created_at < ? OR (created_at = ? AND id < ?)",
+				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID)
+		} else {
+			db = db.Where("created_at > ? OR (created_at = ? AND id > ?)",
+				cursorTodo.CreatedAt, cursorTodo.CreatedAt, cursorTodo.ID)
+		}
 	}
 
-	// データの取得
+	// 関連データをプリロードしてデータを取得
 	var todos []*model.Todo
-	if err := db.Limit(limit + 1).Find(&todos).Error; err != nil {
+	if err := db.Preload("Priority").Preload("Status").Preload("Labels").Limit(limit + 1).Find(&todos).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch todos: %w", err)
 	}
 
 	// ページ情報の設定
-	hasNextPage := false
-	if len(todos) > limit {
-		hasNextPage = true
+	hasNextPage := len(todos) > limit
+	if hasNextPage {
 		todos = todos[:limit]
 	}
 
+	// エッジの作成
 	edges := make([]*model.TodoEdge, len(todos))
 	for i, todo := range todos {
 		cursor := base64.StdEncoding.EncodeToString([]byte(todo.ID))
@@ -232,21 +278,22 @@ func (r *queryResolver) Todos(ctx context.Context, filter *model.TodoFilterInput
 		}
 	}
 
-	endCursor := ""
+	// endCursorの設定
+	var endCursor *string
 	if len(edges) > 0 {
-		endCursor = edges[0].Cursor
-		endCursor = edges[len(edges)-1].Cursor
+		cursor := edges[len(edges)-1].Cursor
+		endCursor = &cursor
 	}
 
 	pageInfo := &model.PageInfo{
-		EndCursor:   &endCursor,
+		EndCursor:   endCursor,
 		HasNextPage: hasNextPage,
 	}
 
 	return &model.TodoConnection{
 		Edges:      edges,
 		PageInfo:   pageInfo,
-		TotalCount: int32(len(todos)),
+		TotalCount: int32(totalCount), // フィルター適用後の件数
 	}, nil
 }
 

@@ -3,3 +3,64 @@ mutation CreateTodo($input: TodoInput!) {
     id
   }
 }
+
+query GetTodos($filter: TodoFilterInput, $sort: TodoSortInput, $first: Int, $after: String) {
+  todos(filter: $filter, sort: $sort, first: $first, after: $after) {
+    edges {
+      node {
+        id
+        title
+        description
+        startDate
+        endDate
+        priority {
+          id
+          name
+          order
+        }
+        status {
+          id
+          name
+          order
+        }
+        labels {
+          id
+          name
+        }
+        createdAt
+        updatedAt
+      }
+      cursor
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    totalCount
+  }
+}
+query GetTodo($id: ID!) {
+  todo(id: $id) {
+    id
+    title
+    description
+    startDate
+    endDate
+    priority {
+      id
+      name
+      order
+    }
+    status {
+      id
+      name
+      order
+    }
+    labels {
+      id
+      name
+    }
+    createdAt
+    updatedAt
+  }
+}

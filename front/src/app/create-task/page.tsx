@@ -12,7 +12,8 @@ import { TextInputForm } from "@/components/form/input-form";
 import { TextAreaInputForm } from "@/components/form/text-area-input-form";
 import { Select } from "@/components/form/select";
 import { Button } from "@/components/button";
-import { useCreateTodoMutation, useGetLabelsQuery, useGetPrioritiesQuery, useGetStatsQuery } from "@/generated/graphql";
+import { useCreateTodoMutation, useGetLabelsQuery, useGetPrioritiesQuery, useGetStatusesQuery } from "@/generated/graphql";
+import { formatDateForGraphQL } from "@/utils/dateFormatter";
 
 const formInputSchema = z.object({
   titleInput: z.string().nonempty({ message: "タイトル入力は必須です" }).min(2, { message: "2文字以上入力してください" }),
@@ -48,13 +49,14 @@ export default function CreateTaskPage() {
 
   const { data: labelData, loading: labelLoading, error: labelError } = useGetLabelsQuery();
   const { data: priorityData, loading: priorityLoading, error: priorityError } = useGetPrioritiesQuery();
-  const { data: statusData, loading: statusLoading, error: statusError } = useGetStatsQuery();
+  const { data: statusData, loading: statusLoading, error: statusError } = useGetStatusesQuery();
   const [createTodo, { loading: createLoading, error: createError }] = useCreateTodoMutation();
 
   const onSubmit: SubmitHandler<FormSchema> = useCallback(async (data) => {
     try {
       // 送信時にデータを変換
       const transformedData: OutputSchema = formOutputSchema.parse(data);
+      
       const result = await createTodo({
         variables: {
           input: {
@@ -63,8 +65,8 @@ export default function CreateTaskPage() {
             priorityId: transformedData.priority,
             statusId: transformedData.status,
             labelIds: transformedData.label ?? [],
-            startDate: transformedData.startDate,
-            endDate: transformedData.endDate,
+            startDate: formatDateForGraphQL(transformedData.startDate),
+            endDate: formatDateForGraphQL(transformedData.endDate),
           },
         },
       });

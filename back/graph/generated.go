@@ -4912,13 +4912,20 @@ func (ec *executionContext) unmarshalInputTodoFilterInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"statusIds", "labelIds", "keywordTitle", "keywordDescription"}
+	fieldsInOrder := [...]string{"priorityIds", "statusIds", "labelIds", "keywordTitle", "keywordDescription"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "priorityIds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("priorityIds"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PriorityIds = data
 		case "statusIds":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("statusIds"))
 			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
@@ -5027,10 +5034,6 @@ func (ec *executionContext) unmarshalInputTodoSortInput(ctx context.Context, obj
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
-	}
-
-	if _, present := asMap["order"]; !present {
-		asMap["order"] = "ASC"
 	}
 
 	fieldsInOrder := [...]string{"order"}
@@ -6766,6 +6769,24 @@ func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
