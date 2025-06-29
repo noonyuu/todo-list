@@ -48,7 +48,6 @@ export type MutationCreatePriorityArgs = {
 
 
 export type MutationCreateStatusArgs = {
-  code: Scalars['String']['input'];
   name: Scalars['String']['input'];
   order: Scalars['Int']['input'];
 };
@@ -110,7 +109,6 @@ export type SortOrder =
 
 export type Status = {
   __typename?: 'Status';
-  code: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   order: Scalars['Int']['output'];
@@ -147,6 +145,7 @@ export type TodoFilterInput = {
   keywordDescription?: InputMaybe<Scalars['String']['input']>;
   keywordTitle?: InputMaybe<Scalars['String']['input']>;
   labelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  priorityIds?: InputMaybe<Scalars['ID']['input']>;
   statusIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
@@ -174,10 +173,10 @@ export type GetPrioritiesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetPrioritiesQuery = { __typename?: 'Query', priorities: Array<{ __typename?: 'Priority', id: string, name: string, order: number }> };
 
-export type GetStatsQueryVariables = Exact<{ [key: string]: never; }>;
+export type GetStatusesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetStatsQuery = { __typename?: 'Query', statuses: Array<{ __typename?: 'Status', id: string, code: string, name: string, order: number }> };
+export type GetStatusesQuery = { __typename?: 'Query', statuses: Array<{ __typename?: 'Status', id: string, name: string, order: number }> };
 
 export type CreateTodoMutationVariables = Exact<{
   input: TodoInput;
@@ -185,6 +184,23 @@ export type CreateTodoMutationVariables = Exact<{
 
 
 export type CreateTodoMutation = { __typename?: 'Mutation', createTodo: { __typename?: 'Todo', id: string } };
+
+export type GetTodosQueryVariables = Exact<{
+  filter?: InputMaybe<TodoFilterInput>;
+  sort?: InputMaybe<TodoSortInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetTodosQuery = { __typename?: 'Query', todos: { __typename?: 'TodoConnection', totalCount: number, edges: Array<{ __typename?: 'TodoEdge', cursor: string, node: { __typename?: 'Todo', id: string, title: string, description?: string | null, startDate?: any | null, endDate?: any | null, createdAt: any, updatedAt: any, priority: { __typename?: 'Priority', id: string, name: string, order: number }, status: { __typename?: 'Status', id: string, name: string, order: number }, labels: Array<{ __typename?: 'Label', id: string, name: string }> } }>, pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean } } };
+
+export type GetTodoQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetTodoQuery = { __typename?: 'Query', todo?: { __typename?: 'Todo', id: string, title: string, description?: string | null, startDate?: any | null, endDate?: any | null, createdAt: any, updatedAt: any, priority: { __typename?: 'Priority', id: string, name: string, order: number }, status: { __typename?: 'Status', id: string, name: string, order: number }, labels: Array<{ __typename?: 'Label', id: string, name: string }> } | null };
 
 
 export const GetLabelsDocument = gql`
@@ -268,11 +284,10 @@ export type GetPrioritiesQueryHookResult = ReturnType<typeof useGetPrioritiesQue
 export type GetPrioritiesLazyQueryHookResult = ReturnType<typeof useGetPrioritiesLazyQuery>;
 export type GetPrioritiesSuspenseQueryHookResult = ReturnType<typeof useGetPrioritiesSuspenseQuery>;
 export type GetPrioritiesQueryResult = Apollo.QueryResult<GetPrioritiesQuery, GetPrioritiesQueryVariables>;
-export const GetStatsDocument = gql`
-    query GetStats {
+export const GetStatusesDocument = gql`
+    query GetStatuses {
   statuses {
     id
-    code
     name
     order
   }
@@ -280,36 +295,36 @@ export const GetStatsDocument = gql`
     `;
 
 /**
- * __useGetStatsQuery__
+ * __useGetStatusesQuery__
  *
- * To run a query within a React component, call `useGetStatsQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetStatsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetStatusesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetStatusesQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetStatsQuery({
+ * const { data, loading, error } = useGetStatusesQuery({
  *   variables: {
  *   },
  * });
  */
-export function useGetStatsQuery(baseOptions?: Apollo.QueryHookOptions<GetStatsQuery, GetStatsQueryVariables>) {
+export function useGetStatusesQuery(baseOptions?: Apollo.QueryHookOptions<GetStatusesQuery, GetStatusesQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetStatsQuery, GetStatsQueryVariables>(GetStatsDocument, options);
+        return Apollo.useQuery<GetStatusesQuery, GetStatusesQueryVariables>(GetStatusesDocument, options);
       }
-export function useGetStatsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetStatsQuery, GetStatsQueryVariables>) {
+export function useGetStatusesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetStatusesQuery, GetStatusesQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetStatsQuery, GetStatsQueryVariables>(GetStatsDocument, options);
+          return Apollo.useLazyQuery<GetStatusesQuery, GetStatusesQueryVariables>(GetStatusesDocument, options);
         }
-export function useGetStatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetStatsQuery, GetStatsQueryVariables>) {
+export function useGetStatusesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetStatusesQuery, GetStatusesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetStatsQuery, GetStatsQueryVariables>(GetStatsDocument, options);
+          return Apollo.useSuspenseQuery<GetStatusesQuery, GetStatusesQueryVariables>(GetStatusesDocument, options);
         }
-export type GetStatsQueryHookResult = ReturnType<typeof useGetStatsQuery>;
-export type GetStatsLazyQueryHookResult = ReturnType<typeof useGetStatsLazyQuery>;
-export type GetStatsSuspenseQueryHookResult = ReturnType<typeof useGetStatsSuspenseQuery>;
-export type GetStatsQueryResult = Apollo.QueryResult<GetStatsQuery, GetStatsQueryVariables>;
+export type GetStatusesQueryHookResult = ReturnType<typeof useGetStatusesQuery>;
+export type GetStatusesLazyQueryHookResult = ReturnType<typeof useGetStatusesLazyQuery>;
+export type GetStatusesSuspenseQueryHookResult = ReturnType<typeof useGetStatusesSuspenseQuery>;
+export type GetStatusesQueryResult = Apollo.QueryResult<GetStatusesQuery, GetStatusesQueryVariables>;
 export const CreateTodoDocument = gql`
     mutation CreateTodo($input: TodoInput!) {
   createTodo(input: $input) {
@@ -343,3 +358,136 @@ export function useCreateTodoMutation(baseOptions?: Apollo.MutationHookOptions<C
 export type CreateTodoMutationHookResult = ReturnType<typeof useCreateTodoMutation>;
 export type CreateTodoMutationResult = Apollo.MutationResult<CreateTodoMutation>;
 export type CreateTodoMutationOptions = Apollo.BaseMutationOptions<CreateTodoMutation, CreateTodoMutationVariables>;
+export const GetTodosDocument = gql`
+    query GetTodos($filter: TodoFilterInput, $sort: TodoSortInput, $first: Int, $after: String) {
+  todos(filter: $filter, sort: $sort, first: $first, after: $after) {
+    edges {
+      node {
+        id
+        title
+        description
+        startDate
+        endDate
+        priority {
+          id
+          name
+          order
+        }
+        status {
+          id
+          name
+          order
+        }
+        labels {
+          id
+          name
+        }
+        createdAt
+        updatedAt
+      }
+      cursor
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    totalCount
+  }
+}
+    `;
+
+/**
+ * __useGetTodosQuery__
+ *
+ * To run a query within a React component, call `useGetTodosQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetTodosQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetTodosQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *      sort: // value for 'sort'
+ *      first: // value for 'first'
+ *      after: // value for 'after'
+ *   },
+ * });
+ */
+export function useGetTodosQuery(baseOptions?: Apollo.QueryHookOptions<GetTodosQuery, GetTodosQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetTodosQuery, GetTodosQueryVariables>(GetTodosDocument, options);
+      }
+export function useGetTodosLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetTodosQuery, GetTodosQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetTodosQuery, GetTodosQueryVariables>(GetTodosDocument, options);
+        }
+export function useGetTodosSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetTodosQuery, GetTodosQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetTodosQuery, GetTodosQueryVariables>(GetTodosDocument, options);
+        }
+export type GetTodosQueryHookResult = ReturnType<typeof useGetTodosQuery>;
+export type GetTodosLazyQueryHookResult = ReturnType<typeof useGetTodosLazyQuery>;
+export type GetTodosSuspenseQueryHookResult = ReturnType<typeof useGetTodosSuspenseQuery>;
+export type GetTodosQueryResult = Apollo.QueryResult<GetTodosQuery, GetTodosQueryVariables>;
+export const GetTodoDocument = gql`
+    query GetTodo($id: ID!) {
+  todo(id: $id) {
+    id
+    title
+    description
+    startDate
+    endDate
+    priority {
+      id
+      name
+      order
+    }
+    status {
+      id
+      name
+      order
+    }
+    labels {
+      id
+      name
+    }
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+/**
+ * __useGetTodoQuery__
+ *
+ * To run a query within a React component, call `useGetTodoQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetTodoQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetTodoQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetTodoQuery(baseOptions: Apollo.QueryHookOptions<GetTodoQuery, GetTodoQueryVariables> & ({ variables: GetTodoQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetTodoQuery, GetTodoQueryVariables>(GetTodoDocument, options);
+      }
+export function useGetTodoLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetTodoQuery, GetTodoQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetTodoQuery, GetTodoQueryVariables>(GetTodoDocument, options);
+        }
+export function useGetTodoSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetTodoQuery, GetTodoQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetTodoQuery, GetTodoQueryVariables>(GetTodoDocument, options);
+        }
+export type GetTodoQueryHookResult = ReturnType<typeof useGetTodoQuery>;
+export type GetTodoLazyQueryHookResult = ReturnType<typeof useGetTodoLazyQuery>;
+export type GetTodoSuspenseQueryHookResult = ReturnType<typeof useGetTodoSuspenseQuery>;
+export type GetTodoQueryResult = Apollo.QueryResult<GetTodoQuery, GetTodoQueryVariables>;
