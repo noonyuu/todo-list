@@ -69,6 +69,8 @@ export default function CreateTaskPage() {
             endDate: formatDateForGraphQL(transformedData.endDate),
           },
         },
+        refetchQueries: ["GetTodos"],
+        awaitRefetchQueries: true,
       });
       // ホーム画面にリダイレクト
       if (result.data?.createTodo) {

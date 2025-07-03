@@ -61,6 +61,8 @@ export default function TodoManagementPage() {
         order: filters.endDateSortOrder ? filters.endDateSortOrder : undefined, // 優先度のソート順
       },
     },
+    fetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
   });
 
   // ページネーション状態を更新
@@ -163,11 +165,6 @@ export default function TodoManagementPage() {
     setCursors([]);
   };
 
-  // 新規追加ハンドラー（実装は後で追加）
-  const handleAddNew = () => {
-    router.push("/create-task");
-  };
-
   if (loading || statusesLoading || prioritiesLoading || labelsLoading) {
     return (
       <Box sx={{ p: 4 }}>
@@ -203,7 +200,7 @@ export default function TodoManagementPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={handleAddNew}
+          onClick={() => router.push("/create-task")}
           sx={{
             backgroundColor: "#010101",
             color: "white",
