@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"os"
 
+	// stringsパッケージをインポート
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
+
+	// "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/noonyuu/todo-list/config"
 	"github.com/noonyuu/todo-list/graph"
 	"github.com/noonyuu/todo-list/graph/resolver"
@@ -32,6 +34,29 @@ func main() {
 		port = defaultPort
 	}
 
+	// CORSミドルウェア
+	corsMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			allowedOrigin := "http://localhost:3000"
+
+			if origin == allowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Baggage, Sentry-Trace, X-Requested-With")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			// プリフライトリクエスト(OPTIONS)への対応
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{DB: db}}))
 
 	srv.AddTransport(transport.Options{})
@@ -45,8 +70,9 @@ func main() {
 		Cache: lru.New[string](100),
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	// http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+
+	http.Handle("/query", corsMiddleware(srv))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
