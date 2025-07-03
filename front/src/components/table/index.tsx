@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, ChipProps } from "@mui/material";
-import { Label, Priority, Status } from "@/generated/graphql";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, ChipProps, Button, Stack } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 // GraphQLから取得したデータに基づく型定義
 type TodoItem = {
@@ -53,6 +53,7 @@ const getStatusColor = (status?: string): ChipProps["color"] => {
 };
 
 const TodoTable = ({ todoItems = [] }: TableProps) => {
+  const router = useRouter();
   const [isClient, setIsClient] = useState<boolean>(false);
 
   useEffect(() => {
@@ -124,7 +125,12 @@ const TodoTable = ({ todoItems = [] }: TableProps) => {
                 )}
               </TableCell>
               <TableCell align="left">
-                <div style={{ maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis" }}>{task.description || "-"}</div>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ maxWidth: 300 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{task.description || "-"}</span>
+                  <Button variant="outlined" size="small" onClick={() => router.push(`/edit-task?id=${task.id}`)}>
+                    編集
+                  </Button>
+                </Stack>
               </TableCell>
             </TableRow>
           ))}
