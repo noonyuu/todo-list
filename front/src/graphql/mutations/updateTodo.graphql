@@ -1,0 +1,23 @@
+mutation UpdateTodo($id: ID!, $input: TodoInput!) {
+  updateTodo(id: $id, input: $input) {
+    id
+    title
+    description
+    startDate
+    endDate
+    priority {
+      id
+      name
+      order
+    }
+    status {
+      id
+      name
+      order
+    }
+    labels {
+      id
+      name
+    }
+  }
+}
