@@ -5,7 +5,7 @@ import { ApolloNextAppProvider, ApolloClient, InMemoryCache } from "@apollo/clie
 
 function makeClient() {
   const httpLink = new HttpLink({
-    uri: "http://localhost:8080/query",
+    uri: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/query",
   });
 
   return new ApolloClient({
