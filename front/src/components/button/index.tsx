@@ -8,10 +8,19 @@ type ButtonProps = {
   variant?: "contained" | "outlined";
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   children: string;
+  color?: string;
 };
 
-export const Button: React.FC<ButtonProps> = ({ variant = "contained", onClick, children }) => {
-  const variantStyle = useMemo(() => (variant === "contained" ? style.contained : style.outlined), [variant]);
+export const Button: React.FC<ButtonProps> = ({ variant = "contained", onClick, children, color }) => {
+  const variantStyle = useMemo(() => {
+    if (variant === "contained") {
+      return {
+        ...style.contained,
+        backgroundColor: color || theme.palette.white.main,
+      };
+    }
+    return style.outlined;
+  }, [variant, color]);
 
   return (
     <MuiButton variant={variant} onClick={onClick} sx={{ ...style.button, ...variantStyle }}>
@@ -30,7 +39,7 @@ const style = {
     },
   },
   contained: {
-    backgroundColor: theme.palette.black.main,
+    // backgroundColor: theme.palette.black.main,
     color: theme.palette.white.main,
   },
   outlined: {
