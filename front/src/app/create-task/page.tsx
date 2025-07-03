@@ -47,16 +47,16 @@ export default function CreateTaskPage() {
     resolver: zodResolver(formInputSchema),
   });
 
-  const { data: labelData, loading: labelLoading, error: labelError } = useGetLabelsQuery();
-  const { data: priorityData, loading: priorityLoading, error: priorityError } = useGetPrioritiesQuery();
-  const { data: statusData, loading: statusLoading, error: statusError } = useGetStatusesQuery();
-  const [createTodo, { loading: createLoading, error: createError }] = useCreateTodoMutation();
+  const { data: labelData } = useGetLabelsQuery();
+  const { data: priorityData } = useGetPrioritiesQuery();
+  const { data: statusData } = useGetStatusesQuery();
+  const [createTodo] = useCreateTodoMutation();
 
   const onSubmit: SubmitHandler<FormSchema> = useCallback(async (data) => {
     try {
       // 送信時にデータを変換
       const transformedData: OutputSchema = formOutputSchema.parse(data);
-      
+
       const result = await createTodo({
         variables: {
           input: {
@@ -82,7 +82,7 @@ export default function CreateTaskPage() {
     } catch (error) {
       console.error("Validation error:", error);
     }
-  }, []);
+  }, [createTodo, router]);
 
   // GraphQLから取得したラベルをselectOptionsに変換
   const selectOptions =

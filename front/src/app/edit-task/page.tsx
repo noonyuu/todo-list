@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container, Typography, Box, Grid } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -35,7 +35,7 @@ const formOutputSchema = formInputSchema.extend({
 type FormSchema = z.infer<typeof formInputSchema>;
 type OutputSchema = z.infer<typeof formOutputSchema>;
 
-export default function EditTaskPage() {
+function EditTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskId = searchParams.get("id");
@@ -249,5 +249,19 @@ export default function EditTaskPage() {
         </Grid>
       </Box>
     </Container>
+  );
+}
+
+export default function EditTaskPage() {
+  return (
+    <Suspense fallback={
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" component="h1" gutterBottom sx={{ textAlign: "center", mb: 4 }}>
+          読み込み中...
+        </Typography>
+      </Container>
+    }>
+      <EditTaskPageContent />
+    </Suspense>
   );
 }

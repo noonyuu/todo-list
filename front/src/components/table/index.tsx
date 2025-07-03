@@ -68,7 +68,7 @@ const TodoTable = ({ todoItems = [] }: TableProps) => {
 
     try {
       return new Date(dateValue).toLocaleDateString("ja-JP");
-    } catch (error) {
+    } catch {
       return "";
     }
   };

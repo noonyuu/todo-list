@@ -88,7 +88,7 @@ export default function TodoManagementPage() {
       uniquePriorities: priorities,
       uniqueLabels: labels,
     };
-  }, [data, statusesData, prioritiesData, labelsData]);
+  }, [statusesData, prioritiesData, labelsData]);
 
   // タスクアイテムの変換とフィルタリング
   const todoItems = useMemo(() => {
@@ -110,7 +110,7 @@ export default function TodoManagementPage() {
       items = items.filter((item) => item.priority?.name === filters.selectedPriority);
     }
     return items;
-  }, [data, filters.selectedPriority, filters.endDateSortOrder, prioritiesData]);
+  }, [data, filters.selectedPriority]);
 
   // フィルター更新ハンドラー
   const handleFilterChange = (field: keyof SearchFilters, value: string | string[]) => {

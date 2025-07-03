@@ -25,7 +25,7 @@ export const formatDateFromGraphQL = (isoString: string | undefined): string | u
     
     // YYYY-MM-DD形式で返す
     return date.toISOString().split('T')[0];
-  } catch (error) {
+  } catch {
     return undefined;
   }
 };
