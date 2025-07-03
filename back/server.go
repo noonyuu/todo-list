@@ -37,15 +37,10 @@ func main() {
 	// CORSミドルウェア
 	corsMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
-			allowedOrigin := "http://localhost:3000"
-
-			if origin == allowedOrigin {
-				w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Baggage, Sentry-Trace, X-Requested-With")
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-			}
+			// 全てのオリジンを許可
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Baggage, Sentry-Trace, X-Requested-With")
 
 			// プリフライトリクエスト(OPTIONS)への対応
 			if r.Method == http.MethodOptions {
@@ -56,7 +51,7 @@ func main() {
 			next.ServeHTTP(w, r)
 		})
 	}
-
+	
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{DB: db}}))
 
 	srv.AddTransport(transport.Options{})
